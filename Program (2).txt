@@ -1,0 +1,859 @@
+Initilize:
+      MOV R0,#0         //Register R0-R4 inililize with 0 these registers will be used for seconds and minutes track 
+//R0 counts 0-9 or count seconds from 0 to 9 
+      MOV R1,#0         //R1 count 0-5 seconds or tens of second 
+      MOV R2,#0         //R2 counts 0-9 miniutes    
+      MOV R4,#0         //R4 counts 0-5 or tens of miniutes 
+      BL DIGIT_Decode   //display right most digit
+      MOV R11,#8
+      BL DIGIT_Decode
+      MOV R11,#0
+      MOV R12,#7        //pixel offet for 2nd digit from left side 
+      BL DIGIT_Decode   //show digit
+      MOV R11,#8
+      BL DIGIT_Decode
+      MOV R11,#0
+      MOV R12,#21      //pixel offet for 2nd digit from right side 
+      BL DIGIT_Decode  //display digit
+      MOV R11,#8 
+      BL DIGIT_Decode  //display digit
+      MOV R11,#0
+      MOV R12,#28      //left most display pixel offset
+      BL DIGIT_Decode  //display digit
+      MOV R11,#8
+      BL DIGIT_Decode
+	
+      MOV R5,#0x50000   //memory locations to store the split results
+      MOV R9,#0x50000  //memory location for tracking the splits
+      MOV R6,#0         //split number track register
+      MOV R10,#0         //split store track register
+      MOV R0,#.red       //color of dots between second and miniutes       
+      STR R0,.Pixel364    //uper dot pixel
+      STR R0,.Pixel300    //lower dot pxiel painted red
+      MOV R0,#Line1       //user guide lines 
+      STR R0,.WriteString   //write user guide lines
+User_Not_Ready:
+      LDR R0,.LastKeyAndReset  //get user input
+      CMP R0,#82     //compare user input with 82 which is ASCII of R
+      BEQ Seg1      //IF AsCII matched then jump to seg1
+      B User_Not_Ready //if input not matched then user has not pressed anything or not pressed required key
+Seg1:
+      MOV R0,#0  //initilize R0 then seconds coutner register
+count0_9: 
+      PUSH {R7,R0}  //ush R7 and R0 on stack
+      LDR R7,.LastKeyAndReset   //get user iput for  pause reset split or track split funcions
+      CMP R7,#80        //Check if P pressed match ASCII of P
+      BEQ Pause_Time    //If pressed then jump to pause the timer
+      CMP R7,#73       //if I pressed then reset the timer by initilize the program again
+      BEQ Initilize    //
+      CMP R7,#83    //check if S pressed
+      BEQ SPLIT     //S pressed then jump to Split subrotuine to Split the timer
+      CMP R7,#84    // check if T pressed
+      BEQ SPLITSHOW  //if T pressed then track the split
+      MOV R0,#.red    //dot color between the second and miniutes 
+      STR R0,.Pixel364  //upper dot
+      STR R0,.Pixel300  //lower dot
+      POP {R7,R0}       //Restore R0 and R7 value
+      MOV R11,#0
+      MOV R12,#28       //select the digit from riht side to display the seconds from 0-9
+      BL DIGIT_Decode   //display seconds
+      BL DELAY1S       //1 second delay
+      ADD R0,R0,#1     //increment second
+      PUSH {R0}       //push r0 on stack to save the second current value
+      MOV R0,#.lightgrey //dots color which will be shown lightgrey after red for 1 sec
+      STR R0,.Pixel364    //upper dot
+      STR R0,.Pixel300  //lower dot
+      POP {R0}          //restore seconds value
+      BL DIGIT_Decode    //display seconds
+      BL DELAY1S        //one second delay
+      ADD R0,R0,#1     //increment seconds
+      CMP R0,#10      //compare if R0 value gets 10
+      BLT count0_9   //if R0<10 then jump to count9_0
+      ADD R1,R1,#1   //if R0>9 then break loop and increment seconds from 0-5 or 10 to 59 
+      MOV R0,R1      //Move seconds value in R0 which is used to show digit on screen
+      MOV R12,#21    //pixel offset for the second display from right
+      BL DIGIT_Decode  //display digit
+      CMP R1,#6       //compare Seconds value with 6 
+      BLT Seg1        //if second value less than 6 then jump to seg1 to again display second 0-9 
+      MOV R0,#0       //show 0 digit on seconds digit after breaking loop 
+      BL DIGIT_Decode  //show 0
+      MOV R1,#0        //make second counter register 0 to start from 0 in next itraction
+      ADD R2,R2,#1     //increment miniutes
+      MOV R0,R2        //copy mininutes value in digit display control register
+      MOV R12,#7        //select second digit from left side
+      BL DIGIT_Decode   //display miniutes 0-9
+      CMP R2,#10        //check if miniutes value less than 10(0-9)
+      BLT Seg1         //if true jump to seg 1 to display first second 0-9 then 10 to 59 then minits 0-9
+      MOV R0,#0        //after 10 minuites the loop will break and we show 10:00 on digits
+      BL DIGIT_Decode   //display digit 
+      ADD R3,R3,#1      //increment miniutes 
+      MOV R0,R3         //copy minuites value into digit display control register
+      MOV R12,#0
+      BL DIGIT_Decode
+      CMP R3,#6
+      BLT Seg1
+      Halt             //after 59:59 the stop watch will halt 
+DIGIT_Decode:
+      PUSH {LR,R2-R10}  //save return address of subroutines and save saves to register 2 to 10 in stack
+      MOV R5,#0    
+     //digit decision here we check which digit requested to display
+      //for this purpose the value in R0 are compared with 0-9 digits and then 
+//branch to label where the digit will be drawn by two colors     
+      CMP R0,#0    
+      BEQ Number0
+      CMP R0,#1
+      BEQ Number1
+      CMP R0,#2
+      BEQ Number2
+      CMP R0,#3
+      BEQ Number3
+      CMP R0,#4
+      BEQ Number4
+      CMP R0,#5
+      BEQ Number5
+      CMP R0,#6
+      BEQ Number6
+      CMP R0,#7
+      BEQ Number7
+      CMP R0,#8
+      BEQ Number8
+      B Number9
+//here in these label i have draw the numbers on screen
+//the red color will show the area of digit which will be displayed
+//while the lightgrey color will show the hidden area
+//i deal number as a 7 segment
+//the number are drawn by the combination of xcoordinates which very from 8 to 12
+//and y coordinates which vary from 17 to 23
+//the selection of cordinates will come next 
+Number0:
+      MOV R2,#.red
+      MOV R9,#x_cords_0_C1
+      MOV R10,#y_cords_0_C1
+      MOV R8,#80
+      BL DrawPixels
+      MOV R2,#.lightgrey
+      MOV R9,#x_cords_0_C2
+      MOV R10,#y_cords_0_C2
+      MOV R8,#12
+      BL DrawPixels
+      POP {LR,R2-R10}
+      RET
+Number1:
+      MOV R2,#.red
+      MOV R9,#x_cords_1_C2
+      MOV R10,#y_cords_1_C2
+      MOV R8,#24
+      BL DrawPixels
+      MOV R2,#.lightgrey
+      MOV R9,#x_cords_1_C1
+      MOV R10,#y_cords_1_C1
+      MOV R8,#68
+      BL DrawPixels
+      POP {LR,R2-R10}
+      RET
+Number2:
+      MOV R2,#.red
+      MOV R9,#x_cords_2_C1
+      MOV R10,#y_cords_2_C1
+      MOV R8,#76
+      BL DrawPixels
+      MOV R2,#.lightgrey
+      MOV R9,#x_cords_2_C2
+      MOV R10,#y_cords_2_C2
+      MOV R8,#16
+      BL DrawPixels
+      POP {LR,R2-R10}
+      RET
+Number3:
+      MOV R2,#.red
+      MOV R9,#x_cords_3_C1
+      MOV R10,#y_cords_3_C1
+      MOV R8,#76
+      BL DrawPixels
+      MOV R2,#.lightgrey
+      MOV R9,#x_cords_3_C2
+      MOV R10,#y_cords_3_C2
+      MOV R8,#16
+      BL DrawPixels
+      POP {LR,R2-R10}
+      RET
+Number4:
+      MOV R2,#.red
+      MOV R9,#x_cords_4_C1
+      MOV R10,#y_cords_4_C1
+      MOV R8,#56
+      BL DrawPixels
+      MOV R2,#.lightgrey
+      MOV R9,#x_cords_4_C2
+      MOV R10,#y_cords_4_C2
+      MOV R8,#36
+      BL DrawPixels
+      POP {LR,R2-R10}
+      RET
+Number5:
+      MOV R2,#.red
+      MOV R9,#x_cords_5_C1
+      MOV R10,#y_cords_5_C1
+      MOV R8,#76
+      BL DrawPixels
+      MOV R2,#.lightgrey
+      MOV R9,#x_cords_5_C2
+      MOV R10,#y_cords_5_C2
+      MOV R8,#16
+      BL DrawPixels
+      POP {LR,R2-R10}
+      RET
+Number6:
+      MOV R2,#.red
+      MOV R9,#x_cords_6_C1
+      MOV R10,#y_cords_6_C1
+      MOV R8,#84
+      BL DrawPixels
+      MOV R2,#.lightgrey
+      MOV R9,#x_cords_6_C2
+      MOV R10,#y_cords_6_C2
+      MOV R8,#8
+      BL DrawPixels
+      POP {LR,R2-R10}
+      RET
+Number7:
+      MOV R2,#.red
+      MOV R9,#x_cords_7_C1
+      MOV R10,#y_cords_7_C1
+      MOV R8,#44
+      BL DrawPixels
+      MOV R2,#.lightgrey
+      MOV R9,#x_cords_7_C2
+      MOV R10,#y_cords_7_C2
+      MOV R8,#48
+      BL DrawPixels
+      POP {LR,R2-R10}
+      RET
+Number8:
+      MOV R2,#.red
+      MOV R9,#x_cords_8_C1
+      MOV R10,#y_cords_8_C1
+      MOV R8,#92
+      BL DrawPixels
+      POP {LR,R2-R10}
+      RET
+Number9:
+      MOV R2,#.red
+      MOV R9,#x_cords_9_C1
+      MOV R10,#y_cords_9_C1
+      MOV R8,#84
+      BL DrawPixels
+      MOV R2,#.lightgrey
+      MOV R9,#x_cords_9_C2
+      MOV R10,#y_cords_9_C2
+      MOV R8,#8
+      BL DrawPixels
+      POP {LR,R2-R10}
+      RET
+//this subroutine will draw digit on screen
+//the requested pixels will be selected from
+//the coordinates address which are passed 
+//the value of cordinates are obtained and then
+//passed to drawpixel subroutine which will draw the pixels for the 
+//digit
+DrawPixels:
+      PUSH {LR,R0,R1,R7,R5,R3}
+      MOV R7,#0
+LOOP:
+      LDR R0,[R9+R7]  //R7 value incremented by 4 in after every itraction becuase the 4 byte word
+      LDR R1,[R10+R7]
+      ADD R0,R0,R12  //select the display where the digit will be displayed
+      ADD R1,R1,R11
+      BL drawPixel    //draw pixel after obtaining value of coordinates
+      ADD R7,R7,#4   //increment 4 bytes of data
+      CMP R7,R8     //comapre if all cordinates are served(drawn)
+      BLT LOOP      //if not then jump back to loop
+      POP {LR,R0,R1,R7,R5,R3} 
+      RET
+//this subroutine draw pixel on screen
+//dawn pixel calculated by first multipling the xcoordinate by 4 
+//and y pixel multipled by 256 then both values added 
+//the added value is the requested pixel
+drawPixel:
+      MOV R3, #.PixelScreen  
+      LSL R4, R0, #2    //Multiply X coordinate by 4
+      LSL R5, R1, #8    //Multiply Y coordinate by 256
+      ADD R5, R5, R4    //Get the pixel index
+      STR R2, [R3+R5]
+      RET
+Line1: .ASCIZ "1. Enter R to Play \n 2. P to Pause \n 3. I to Reset \n 4. S To Spilt \n 5. T to Track Split "
+//cordinates are selected as 7 segment display
+//the part of 7 segment which need to be shown to user painted green 
+//the coordinate for 0 will be (8,17),(9,17),(10,17),(11,17),(12,17)
+//				(8,18)                        (12,18)
+//as so on.....to (8,23 to (12,23)...the x coordinates are given in x_cords and y coordinates 
+//are given in y_cords    
+x_cords_0_C1:
+      8
+      9
+      10
+      11
+      12
+      8
+      12
+      8
+      12
+      8
+      12
+      8
+      12
+      8
+      12
+      8
+      9
+      10
+      11
+      12
+y_cords_0_C1:
+      17
+      17
+      17
+      17
+      17
+      18
+      18
+      19
+      19
+      20
+      20
+      21
+      21
+      22
+      22
+      23
+      23
+      23
+      23
+      23
+x_cords_0_C2:
+      9
+      10
+      11
+y_cords_0_C2:
+      20
+      20
+      20
+x_cords_1_C1:
+      8                 //(8,17)
+      9                 //(9,17)
+      10                //(10,17)
+      11                //(11,17)
+      8                 //(8,18)
+      8                 //(8,19)
+      8                 //(8,20)
+      9                 //(9,20)
+      10
+      11
+      8
+      8
+      8
+      9
+      10
+      11
+y_cords_1_C1:
+      17
+      17
+      17
+      17
+      18
+      19
+      20
+      20
+      20
+      20
+      21
+      22
+      23
+      23
+      23
+      23
+x_cords_1_C2:
+      12
+      12
+      12
+      12
+      12
+      12
+      12
+y_cords_1_C2:
+      17
+      18
+      19
+      20
+      21
+      22
+      23
+x_cords_2_C1:
+      8 
+      9
+      10
+      11
+      12
+      12
+      12
+      12
+      11
+      10
+      9
+      8
+      8
+      8
+      8
+      9
+      10
+      11
+      12
+y_cords_2_C1:
+      17
+      17
+      17
+      17
+      17
+      18
+      19
+      20
+      20
+      20
+      20
+      20
+      21
+      22
+      23
+      23
+      23
+      23
+      23
+x_cords_2_C2:
+      8
+      8
+      12
+      12
+y_cords_2_C2:
+      18
+      19
+      21
+      22
+x_cords_3_C1:
+      8
+      9
+      10
+      11
+      12
+      12
+      12
+      8
+      9
+      10
+      11
+      12
+      12
+      12
+      8
+      9
+      10
+      11
+      12
+y_cords_3_C1:
+      17
+      17
+      17
+      17
+      17
+      18
+      19
+      20
+      20
+      20
+      20
+      20
+      21
+      22
+      23
+      23
+      23
+      23
+      23
+x_cords_3_C2:
+      8
+      8
+      8
+      8
+y_cords_3_C2:
+      18
+      19
+      21
+      22
+x_cords_4_C1:
+      8
+      8
+      8
+      8
+      9
+      10
+      11
+      12
+      12
+      12
+      12
+      12
+      12
+      12
+y_cords_4_C1:
+      17
+      18
+      19
+      20
+      20
+      20
+      20
+      20
+      19
+      18
+      17
+      21
+      22
+      23
+x_cords_4_C2:
+      9
+      10
+      11
+      8
+      8
+      8
+      9
+      10
+      11
+y_cords_4_C2:
+      17
+      17
+      17
+      21
+      22
+      23
+      23
+      23
+      23
+x_cords_5_C1:
+      8
+      9
+      10
+      11
+      12
+      8
+      8
+      8
+      9
+      10
+      11
+      12
+      12
+      12
+      12
+      11
+      10
+      9
+      8
+y_cords_5_C1:
+      17
+      17
+      17
+      17
+      17
+      18
+      19
+      20
+      20
+      20
+      20
+      20
+      21
+      22
+      23
+      23
+      23
+      23
+      23
+x_cords_5_C2:
+      12
+      12
+      8
+      8
+y_cords_5_C2:
+      18
+      19
+      21
+      22
+x_cords_6_C1:
+      8
+      9
+      10
+      11
+      12
+      8
+      8
+      8
+      9
+      10
+      11
+      12
+      12
+      12
+      12
+      11
+      10
+      9
+      8
+      8
+      8
+y_cords_6_C1:
+      17
+      17
+      17
+      17
+      17
+      18
+      19
+      20
+      20
+      20
+      20
+      20
+      21
+      22
+      23
+      23
+      23
+      23
+      23
+      22
+      21
+x_cords_6_C2:
+      12
+      12
+y_cords_6_C2:
+      18
+      19
+x_cords_7_C1:
+      8
+      9
+      10
+      11
+      12
+      12
+      12
+      12
+      12
+      12
+      12
+y_cords_7_C1:
+      17
+      17
+      17
+      17
+      17
+      18
+      19
+      20
+      21
+      22
+      23
+x_cords_7_C2:
+      8
+      8
+      8
+      9
+      10
+      11
+      8
+      8
+      8
+      9
+      10
+      11
+y_cords_7_C2:
+      18
+      19
+      20
+      20
+      20
+      20
+      21
+      22
+      23
+      23
+      23
+      23
+x_cords_8_C1:
+      8
+      9
+      10
+      11
+      12
+      8
+      12
+      8
+      12
+      8
+      12
+      8
+      12
+      8
+      12
+      8
+      9
+      10
+      11
+      12
+      9
+      10
+      11
+y_cords_8_C1:
+      17
+      17
+      17
+      17
+      17
+      18
+      18
+      19
+      19
+      20
+      20
+      21
+      21
+      22
+      22
+      23
+      23
+      23
+      23
+      23
+      20
+      20
+      20
+x_cords_9_C1:
+      8
+      9
+      10
+      11
+      12
+      12
+      12
+      12
+      11
+      10
+      9
+      8
+      8
+      8
+      8
+      9
+      10
+      11
+      12
+      12
+      12
+y_cords_9_C1:
+      17
+      17
+      17
+      17
+      17
+      18
+      19
+      20
+      20
+      20
+      20
+      20
+      19
+      18
+      23
+      23
+      23
+      23
+      23
+      22
+      21
+x_cords_9_C2:
+      8 
+      8
+y_cords_9_C2:
+      21
+      22
+DELAY1S:
+      PUSH {R0,R1,R2,R3}
+      LDR R0,.Time
+      MOV R1,#1
+Timer1:
+      LDR R2,.Time
+      SUB R3,R2,R1
+      CMP R3,R0
+      BLT Timer1
+      POP {R0,R1,R2,R3}
+      RET
+//Pause function will pause the program when requested
+//the program keep looping here untill user press R again
+//the user input obtained at every ittraction 
+Pause_Time:
+      LDR R7,.LastKeyAndReset
+      CMP R7,#82
+      BEQ count0_9
+      B Pause_Time
+//SPLIT subroutine will save time or split the time
+//the Split time are stored at address starting from 50000 address 
+SPLIT:
+      ADD R10,R10,#1
+      STR R0,[R5]
+      ADD R5,R5,#0x4
+      STR R1,[R5]
+      ADD R5,R5,#0x4
+      STR R2,[R5]
+      ADD R5,R5,#0x4
+      STR R3,[R5]
+      ADD R5,R5,#0x4
+      CMP R10,#5
+      BLT COUNTINUE
+      MOV R5,#0x50000
+     MOV R10,#0
+COUNTINUE:
+      B count0_9
+
+//SPLIT show will show the split time to user
+SPLITSHOW:
+	PUSH {R0,LR}
+	MOV R0,#0
+	LDR R0,[R9]
+	MOV R12,#28
+	MOV R11,#8
+	BL DIGIT_Decode
+	ADD R9,R9,#0x4
+	LDR R0,[R9]
+	MOV R12,#21
+	MOV R11,#8
+	BL DIGIT_Decode
+	ADD R9,R9,#0x4
+	LDR R0,[R9]
+	MOV R12,#7
+	MOV R11,#8
+	BL DIGIT_Decode
+	ADD R9,R9,#0x4
+	LDR R0,[R9]
+	MOV R12,#0
+	MOV R11,#8
+	BL DIGIT_Decode
+	ADD R9,R9,#0x4
+	ADD R6,R6,#1
+	CMP R6,#5
+	BLT BACK
+	MOV R9,#0x50000
+	MOV R6,#0
+BACK:
+	POP {R0,LR}
+	B count0_9
+     
